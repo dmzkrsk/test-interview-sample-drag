@@ -1,0 +1,50 @@
+<html>
+<script type="text/javascript" src="jquery.min.js"></script>
+<script type="text/javascript" src="jquery-ui-1.9.0.custom.min.js"></script>
+<script type="text/javascript" src="underscore-min.js"></script>
+<script src="http://django-dev:40000/socket.io/socket.io.js"></script>
+<style>
+    #draggable {
+        width: 200px;
+        height: 200px;
+        border: 1px solid black;
+        background: #ebebeb;
+    }
+</style>
+<script type="text/javascript">
+    var SMOOTHNESS = 0;
+
+    $(document).ready(function() {
+        var o = $('#draggable');
+
+        // подключаемся к серверу
+        socket = io.connect('http://django-dev:40000');
+
+        // функция, ответственная за отправку текущего положения на сервер
+        var report = function(event, ui) {
+            socket.json.send(ui.offset);
+        };
+
+        // не требовалось по условию задания
+        // опциональный вариант "разгружки" сервера
+        // если SMOOTHNESS -- положительное число
+        // то комманды на сервер будут уходить каждые SMOOTHNESS ms
+        if(SMOOTHNESS > 0)
+            report = _.throttle(report, SMOOTHNESS);
+
+        // при получении ответа с сервера
+        socket.on('message', function(offset) {
+            // перемещаем наш объект
+            o.offset(offset);
+        });
+
+        // разрешаем таскать наш элемент
+        // при каждом движении запускаем обработчик события
+        // который отправит данные на сервер
+        o.draggable({cursor: "move", containment: "parent"}).on('drag', report);
+    });
+</script>
+<body>
+    <div id="draggable"></div>
+</body>
+</html>
